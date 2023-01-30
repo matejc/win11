@@ -40,15 +40,23 @@ swtpm socket --tpmstate dir="$STATE_DIR/emulated_tpm" --ctrl type=unixio,path="$
 if [[ "$VIDEO" == "looking-glass" ]]
 then
     EXTRA_QEMU_ARGS="$EXTRA_QEMU_ARGS -spice unix=on,addr=$STATE_DIR/spice.sock,disable-ticketing=on -device virtio-serial-pci -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0 -chardev spicevmc,id=spicechannel0,name=vdagent"
-    EXTRA_QEMU_ARGS="$EXTRA_QEMU_ARGS -device ivshmem-plain,memdev=ivshmem,bus=pcie.0 -object memory-backend-file,id=ivshmem,share=on,mem-path=/dev/shm/looking-glass,size=64M"
+    EXTRA_QEMU_ARGS="$EXTRA_QEMU_ARGS -device ivshmem-plain,memdev=ivshmem,bus=pcie.0 -object memory-backend-file,id=ivshmem,share=on,mem-path=/dev/shm/looking-glass,size=64M -vga qxl"
     if [ -e /dev/shm/looking-glass ] && [ ! -w /dev/shm/looking-glass ]
     then
         sudo chown "$USER" /dev/shm/looking-glass
     fi
     { sleep 5; looking-glass-client input:mouseRedraw=yes input:autoCapture=yes input:rawMouse=yes input:escapeKey=KEY_F11 -p 0 -c "$STATE_DIR/spice.sock"; } &
+elif [[ "$VIDEO" == "qxl" ]]
+then
+    EXTRA_QEMU_ARGS="$EXTRA_QEMU_ARGS -usb -device usb-tablet -device qxl,vgamem_mb=64,ram_size_mb=512,vram_size_mb=256,surfaces=1"
+elif [[ "$VIDEO" == "sdl" ]]
+then
+    EXTRA_QEMU_ARGS="$EXTRA_QEMU_ARGS -usb -device usb-tablet -parallel none -serial none -display sdl,gl=on,window-close=off -device virtio-vga-gl,max_outputs=1"
 else
-    EXTRA_QEMU_ARGS="$EXTRA_QEMU_ARGS -usb -device usb-tablet"
+    exit 1
 fi
+
+#export SDL_MOUSE_FOCUS_CLICKTHROUGH="1"
 
 qemu-kvm \
     -m "$MEMORY_QEMU" \
@@ -68,5 +76,4 @@ qemu-kvm \
     -drive file="$VIRTIO_WIN_ISO",media=cdrom,index=3 \
     -netdev user,id=user.0,smb="$STATE_DIR/shared" \
     -device virtio-net,netdev=user.0 \
-    -fda fat:floppy:rw:"$FLOPPY_DIR" \
-    -vga qxl $EXTRA_QEMU_ARGS
+    -fda fat:floppy:rw:"$FLOPPY_DIR" $EXTRA_QEMU_ARGS
