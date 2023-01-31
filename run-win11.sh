@@ -21,7 +21,7 @@ trap _killtpm EXIT
 
 mkdir -p "$STATE_DIR/emulated_tpm"
 
-if [ -d /dev/hugepages ]
+if grep HugePages_Total /proc/meminfo | awk '$2 == 0 { exit(1) }'
 then
     test -d /dev/hugepages/win11 || sudo mkdir -p /dev/hugepages/win11
     test -w /dev/hugepages/win11 || sudo chown -R "$USER" /dev/hugepages/win11
