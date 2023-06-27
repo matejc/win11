@@ -45,7 +45,7 @@ then
     then
         sudo chown "$USER" /dev/shm/looking-glass
     fi
-    { sleep 5; looking-glass-client input:mouseRedraw=yes input:autoCapture=yes input:rawMouse=yes input:escapeKey=KEY_F11 -p 0 -c "$STATE_DIR/spice.sock"; } &
+    { sleep 5; looking-glass-client input:mouseRedraw=yes input:autoCapture=yes input:rawMouse=yes input:escapeKey=KEY_RIGHTSHIFT win:dontUpscale=yes egl:scale=2 egl:multisample=no -p 0 -c "$STATE_DIR/spice.sock"; } &
 elif [[ "$VIDEO" == "qxl" ]]
 then
     EXTRA_QEMU_ARGS="$EXTRA_QEMU_ARGS -usb -device usb-tablet -device qxl,vgamem_mb=64,ram_size_mb=512,vram_size_mb=256,surfaces=1"
@@ -56,7 +56,10 @@ else
     exit 1
 fi
 
-#export SDL_MOUSE_FOCUS_CLICKTHROUGH="1"
+export SDL_ALLOW_ALT_TAB_WHILE_GRABBED=1
+export SDL_MOUSE_FOCUS_CLICKTHROUGH=1
+export SDL_RENDER_DRIVER=opengl
+export SDL_RENDER_VSYNC=0
 
 qemu-kvm \
     -m "$MEMORY_QEMU" \
@@ -77,3 +80,5 @@ qemu-kvm \
     -netdev user,id=user.0,smb="$STATE_DIR/shared" \
     -device virtio-net,netdev=user.0 \
     -fda fat:floppy:rw:"$FLOPPY_DIR" $EXTRA_QEMU_ARGS
+
+#,smb="$STATE_DIR/shared" \
